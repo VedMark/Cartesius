@@ -26,9 +26,11 @@ public:
 
 private:
     QPushButton *createButton(QString, QString hint = QString(), QKeySequence shortcut = QKeySequence());
+    int findLastFuncPos();
+    int findLastNumberPos();
 
-    Q_SLOT void slotMoveToRightBottom();
     Q_SLOT void slotButtonClicked();
+    Q_SLOT void slotMoveToTopLeft();
 
 
 private:

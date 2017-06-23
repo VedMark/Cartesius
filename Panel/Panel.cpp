@@ -1,5 +1,6 @@
 #include "Panel.h"
 
+#include <QtAlgorithms>
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QKeySequence>
@@ -13,6 +14,8 @@
 #include <QTreeView>
 #include <QFileSystemModel>
 #include <QWidget>
+
+#include <algorithm>
 
 Panel::Panel(QWidget *parent)
     : QDialog(parent), m_mode(NORMAL)
@@ -43,9 +46,8 @@ Panel::Panel(QWidget *parent)
     pLayout->addWidget(createButton(("3"),    tr(""), QKeySequence("3")                               ), 4, 2);
     pLayout->addWidget(createButton(("-"),    tr("Вычесть [-]"), QKeySequence("-")                    ), 4, 3);
     pLayout->addWidget(createButton(("="),    tr("Вычислить результат"), QKeySequence("Return")       ), 4, 4, 2, 1);
-    pLayout->addWidget(createButton(("0"),    tr(""), QKeySequence("0")                               ), 5, 0);
-    pLayout->addWidget(createButton(("."),    tr(""), QKeySequence(".")                               ), 5, 1);
-    pLayout->addWidget(createButton(QChar(0xB1), tr("Изменить знак [Ctrl+P]"), QKeySequence("Ctrl+P") ), 5, 2);
+    pLayout->addWidget(createButton(("0"),    tr(""), QKeySequence("0")                               ), 5, 0, 1, 2);
+    pLayout->addWidget(createButton(("."),    tr(""), QKeySequence(".")                               ), 5, 2);
     pLayout->addWidget(createButton(("+"),    tr("Сложить [+]"), QKeySequence("+")                    ), 5, 3);
 
     m_pIngineeringPanel = new QWidget;
@@ -91,7 +93,7 @@ Panel::Panel(QWidget *parent)
     setLayout(mainLayout);
 
     layout()->setSizeConstraint(QLayout::SetFixedSize);
-    slotMoveToRightBottom();
+    slotMoveToTopLeft();
     setWindowIcon(QIcon(":/images/calculator.png"));
     setWindowTitle(tr("Cartesius"));
 }
@@ -107,19 +109,50 @@ void Panel::slotSetMode(Mode mode)
         m_pIngineeringPanel->show();
         break;
     }
-    m_pOutPanel->setText("0");
-    slotMoveToRightBottom();
+    slotMoveToTopLeft();
 }
 
 QPushButton *Panel::createButton(QString head, QString hint, QKeySequence shortcut)
 {
     auto button = new QPushButton(head);
     button->setAutoDefault(false);
-    button->setMaximumSize(40, 100);
+    if(head != "0")
+        button->setMaximumSize(40, 100);
     button->setToolTip(hint);
     button->setShortcut(shortcut);
     connect(button, SIGNAL( clicked(bool) ), SLOT( slotButtonClicked() ) );
     return button;
+}
+
+int Panel::findLastFuncPos()
+{
+    auto text = m_pOutPanel->text();
+    auto num_brace = 0;
+    auto i = m_pOutPanel->text().size() - 1;
+    if(text[i] == ")")
+        num_brace++;
+    for(i--; i >= 0 && num_brace > 0; --i){
+        if(text[i] == ")")
+            num_brace++;
+        if(text[i] == "(")
+            num_brace--;
+    }
+    while(QRegExp("a-z").exactMatch(text.at(i--)));
+    return i - 1;
+}
+
+int Panel::findLastNumberPos()
+{
+    int i = m_pOutPanel->text().size() - 1;
+    for(; i >= 0; --i){
+        if(!QRegExp("[0-9.]").exactMatch(m_pOutPanel->text().at(i))){
+            if(i == m_pOutPanel->text().size() - 1 && i)
+                return findLastFuncPos();
+            return i + 1;
+        }
+        else if(i == 0)
+            return i;
+    }
 }
 
 void Panel::slotButtonClicked()
@@ -129,14 +162,37 @@ void Panel::slotButtonClicked()
         m_pOutPanel->setText("0");
     }
     else if(text == "↩"){
+        if(m_pOutPanel->text().size() == 1){
+            m_pOutPanel->setText("0");
+        }
+        else
+            m_pOutPanel->setText(m_pOutPanel->text().remove(m_pOutPanel->text().size() - 1, 1));
+    }
+    else if(text == "1/x"){
+        m_pOutPanel->setText(m_pOutPanel->text().insert(findLastNumberPos(), "1÷"));
 
     }
-    else if(text.contains(QRegExp("[0-9]")) || text == "."){
+    else if(text == "sin" || text == "cos" || text == "tg" || text == "ctg" ||
+            text == "arcsin" || text == "arccos" || text == "arctg" || text == "arcctg"){
+        m_pOutPanel->setText(m_pOutPanel->text().insert(findLastNumberPos(), text + "("));
+        m_pOutPanel->setText(m_pOutPanel->text().insert(m_pOutPanel->text().size(), ")"));
 
+    }
+    else if(text == "="){
+
+    }
+    else if(QRegExp("[0-9]").exactMatch(text)){
+        m_pOutPanel->text().size() == 1 && m_pOutPanel->text() == "0"
+                ? m_pOutPanel->setText(text)
+                : m_pOutPanel->setText(m_pOutPanel->text().append(text));
+    }
+    else if(QRegExp("[()+-×÷√.]").exactMatch(text)){
+        m_pOutPanel->setText(m_pOutPanel->text().append(text));
     }
 }
 
-void Panel::slotMoveToRightBottom()
+void Panel::slotMoveToTopLeft()
 {
     move(0, 0);
 }
+
