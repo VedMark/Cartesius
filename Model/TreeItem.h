@@ -3,28 +3,13 @@
 #include <QtGlobal>
 #include <QVariant>
 
-enum OperationType{
-    SUM,
-    SUBSTRACTION,
-    MULTIPLICATION,
-    DIVISION,
-    SQUARE_ROOT,
-    PERCENT,
-    SIN,
-    COS,
-    TG,
-    CTG,
-    ARCSIN,
-    ARCCOS,
-    ARCTG,
-    ARCCTG,
-    NONE
-};
-
 
 struct NodeInfo{
-    OperationType operation;
+    QString expression;
     qreal value;
+
+    NodeInfo();
+    NodeInfo(QString expression, qreal value);
 };
 
 
@@ -39,7 +24,7 @@ public:
     TreeItem *child(int row);
     int childCount() const;
     int columnCount() const;
-    QVariant data() const;
+    QVariant data(int column) const;
     int row() const;
     TreeItem *parentItem();
 

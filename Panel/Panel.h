@@ -9,6 +9,9 @@ class QString;
 class QTreeView;
 class QWidget;
 
+class CalculationTreeModel;
+class Parser;
+
 enum Mode{
     NORMAL,
     INGINEERING,
@@ -38,4 +41,8 @@ private:
     QLineEdit *m_pOutPanel;
     QWidget *m_pIngineeringPanel;
     Mode m_mode;
+    bool m_calculatedPushed;
+
+    CalculationTreeModel *m_pModel;
+    Parser *m_pParser;
 };

@@ -1,25 +1,32 @@
 #include "Panel.h"
 
+#include "Model/CalculationTreeModel.h"
+#include "Calculator/Parser.h"
+
 #include <QtAlgorithms>
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QHeaderView>
 #include <QKeySequence>
 #include <QLayout>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QRegExp>
 #include <QAbstractTableModel>
 #include <QTreeView>
 #include <QFileSystemModel>
 #include <QWidget>
-
 #include <algorithm>
 
 Panel::Panel(QWidget *parent)
-    : QDialog(parent), m_mode(NORMAL)
+    : QDialog(parent), m_mode(NORMAL), m_calculatedPushed(false)
 {
+    m_pModel = new CalculationTreeModel(this);
+    m_pParser = new Parser();
+
     m_pOutPanel = new QLineEdit("0");
     m_pOutPanel->setAlignment(Qt::AlignRight);
     m_pOutPanel->setReadOnly(true);
@@ -81,10 +88,8 @@ Panel::Panel(QWidget *parent)
     inputAreaLayout->addLayout(pButtonsLayout);
 
     m_pCalcucationTree = new QTreeView;
-    auto fileSys = new QFileSystemModel();
-    fileSys->setRootPath("/home/vedmark");
-
-    m_pCalcucationTree->setModel(fileSys);
+    m_pCalcucationTree->setModel(m_pModel);
+    m_pCalcucationTree->header()->setVisible(false);
 
     auto mainLayout = new QHBoxLayout;
     mainLayout->addWidget(m_pCalcucationTree);
@@ -153,13 +158,19 @@ int Panel::findLastNumberPos()
         else if(i == 0)
             return i;
     }
+    return -1;
 }
 
 void Panel::slotButtonClicked()
 {
     auto text = static_cast<QPushButton*>(sender())->text();
+    if(m_calculatedPushed && text != "="){
+        m_pOutPanel->setText("0");
+        m_calculatedPushed = false;
+    }
     if(text == "CE"){
         m_pOutPanel->setText("0");
+        m_pModel->clear();
     }
     else if(text == "↩"){
         if(m_pOutPanel->text().size() == 1){
@@ -173,22 +184,44 @@ void Panel::slotButtonClicked()
 
     }
     else if(text == "sin" || text == "cos" || text == "tg" || text == "ctg" ||
-            text == "arcsin" || text == "arccos" || text == "arctg" || text == "arcctg"){
+            text == "asin" || text == "acos" || text == "atg" || text == "actg"){
         m_pOutPanel->setText(m_pOutPanel->text().insert(findLastNumberPos(), text + "("));
         m_pOutPanel->setText(m_pOutPanel->text().insert(m_pOutPanel->text().size(), ")"));
-
     }
     else if(text == "="){
-
+        try{
+            auto calcText = m_pOutPanel->text();
+            m_pOutPanel->setText(QString::number(m_pParser->calcucateExpression(calcText)));
+            m_pModel->setupModelData(calcText);
+            m_calculatedPushed = true;
+        }
+        catch(SyntaxError){
+            QMessageBox::critical(this,
+                                  QStringLiteral("Error"),
+                                  QStringLiteral("Wrong expression!"),
+                                  QMessageBox::Ok);
+        }
+        catch(...){
+            QMessageBox::critical(this,
+                                  QStringLiteral("Error"),
+                                  QStringLiteral("Unknown error!"),
+                                  QMessageBox::Ok);
+        }
     }
-    else if(QRegExp("[0-9]").exactMatch(text)){
+    else if(QRegExp("[0-9√]").exactMatch(text)){
         m_pOutPanel->text().size() == 1 && m_pOutPanel->text() == "0"
                 ? m_pOutPanel->setText(text)
                 : m_pOutPanel->setText(m_pOutPanel->text().append(text));
     }
-    else if(QRegExp("[()+-×÷√.]").exactMatch(text)){
+    else if(QRegExp("[()]").exactMatch(text)){
+        m_pOutPanel->text().size() == 1 && m_pOutPanel->text() == "0" ?
+                    m_pOutPanel->setText(text) :
+                    m_pOutPanel->setText(m_pOutPanel->text().append(text));
+    }
+    else if(QRegExp("[+-×÷.%]").exactMatch(text)){
         m_pOutPanel->setText(m_pOutPanel->text().append(text));
     }
+    m_pCalcucationTree->setFocus();
 }
 
 void Panel::slotMoveToTopLeft()

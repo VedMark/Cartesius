@@ -27,6 +27,10 @@ public:
 
     Q_SLOT void setupModelData(QString data);
 
+    void findNodes(TreeItem* parent, QString data);
+
+    void clear();
+
 private:
     TreeItem *m_rootItem;
 };

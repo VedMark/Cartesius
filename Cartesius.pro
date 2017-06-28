@@ -26,12 +26,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += main.cpp \
         Model/CalculationTreeModel.cpp \
         Model/TreeItem.cpp \
-        Panel/Panel.cpp
+        Panel/Panel.cpp \
+        Calculator/Parser.cpp
 
 HEADERS += \
         Model/TreeItem.h \
         Model/CalculationTreeModel.h \
-        Panel/Panel.h
+        Panel/Panel.h \
+        Calculator/Parser.h
 
 RESOURCES += \
         icons.qrc

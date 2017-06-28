@@ -33,11 +33,16 @@ int TreeItem::columnCount() const
     return 1;
 }
 
-QVariant TreeItem::data() const
+QVariant TreeItem::data(int column) const
 {
-    if(m_itemData.operation == NONE)
-        return m_itemData.value;
-    return m_itemData.operation;
+    switch (column) {
+    case 0:
+        return QVariant(m_itemData.value);
+        break;
+    case 1:
+        return QVariant(m_itemData.expression);
+    }
+    return QVariant();
 }
 
 int TreeItem::row() const
@@ -52,3 +57,13 @@ TreeItem *TreeItem::parentItem()
 {
     return m_parentItem;
 }
+
+
+
+NodeInfo::NodeInfo()
+    :expression(""), value(0)
+{}
+
+NodeInfo::NodeInfo(QString expression_, qreal value_)
+    :expression(expression_), value(value_)
+{}
